@@ -1,75 +1,67 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const { v4: uuidv4 } = require('uuid');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const screenshot = require('screenshot-desktop');
-var robot = require("robotjs");
+const robot = require("robotjs");
+const socket = require('socket.io-client')('http://192.168.1.18:5000');
 
-var socket = require('socket.io-client')('http://192.168.1.18:5000');
-var interval;
+let interval;
 
-function createWindow () {
+function createWindow() {
     const win = new BrowserWindow({
         width: 500,
         height: 150,
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            contextIsolation: false // Para permitir nodeIntegration
         }
-    })
+    });
     win.removeMenu();
-    win.loadFile('index.html')
+    win.loadFile('index.html');
 
-    socket.on("mouse-move", function(data){
-        var obj = JSON.parse(data);
-        var x = obj.x;
-        var y = obj.y;
-
+    socket.on("mouse-move", (data) => {
+        const obj = JSON.parse(data);
+        const { x, y } = obj;
         robot.moveMouse(x, y);
-    })
+    });
 
-    socket.on("mouse-click", function(data){
+    socket.on("mouse-click", () => {
         robot.mouseClick();
-    })
+    });
 
-    socket.on("type", function(data){
-        var obj = JSON.parse(data);
-        var key = obj.key;
-
+    socket.on("type", (data) => {
+        const obj = JSON.parse(data);
+        const { key } = obj;
         robot.keyTap(key);
-    })
+    });
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        app.quit()
+        app.quit();
     }
-})
+});
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
+        createWindow();
     }
-})
+});
 
-ipcMain.on("start-share", function(event, arg) {
-
-    var uuid = "test"; //uuidv4();
+ipcMain.on("start-share", (event) => {
+    const uuid = "test"; // Aquí usamos el identificador "test"
     socket.emit("join-message", uuid);
     event.reply("uuid", uuid);
 
-    interval = setInterval(function() {
+    interval = setInterval(() => {
         screenshot().then((img) => {
-            var imgStr = new Buffer(img).toString('base64');
-
-            var obj = {};
-            obj.room = uuid;
-            obj.image = imgStr;
-
+            const imgStr = Buffer.from(img).toString('base64');
+            const obj = { room: uuid, image: imgStr };
             socket.emit("screen-data", JSON.stringify(obj));
-        })
-    }, 500)
-})
+        });
+    }, 500);
+});
 
-ipcMain.on("stop-share", function(event, arg) {
+ipcMain.on("stop-share", () => {
     clearInterval(interval);
-})
+});

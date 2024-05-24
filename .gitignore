@@ -1,0 +1,19 @@
+# Ignorar la carpeta node_modules en la raíz del proyecto
+/node_modules
+
+# Si hay una carpeta node_modules dentro de otra carpeta, también la ignoramos
+**/node_modules
+
+# Ignorar archivos de log generados por npm
+npm-debug.log
+
+# Ignorar archivos de caché de npm
+.npm
+
+# Ignorar archivos de caché de yarn
+.yarn
+.yarnrc
+
+# Ignorar archivos generados automáticamente
+package-lock.json
+yarn.loc
